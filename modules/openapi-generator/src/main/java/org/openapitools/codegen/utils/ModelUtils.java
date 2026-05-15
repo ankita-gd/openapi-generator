@@ -1696,6 +1696,10 @@ public class ModelUtils {
         if ("null".equals(schema.getType())) {
             return true;
         }
+        // OpenAPI 3.1: type can be specified via getTypes()
+        if (schema.getTypes() != null && schema.getTypes().contains("null") && schema.getTypes().size() == 1) {
+            return true;
+        }
         return false;
     }
 
