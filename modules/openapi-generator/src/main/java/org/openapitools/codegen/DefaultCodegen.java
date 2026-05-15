@@ -3649,6 +3649,10 @@ public class DefaultCodegen implements CodegenConfig {
         if (p.getNullable() != null) {
             property.isNullable = p.getNullable();
         }
+        // OpenAPI 3.1: type can be an array like ["array", "null"]
+        if (p.getTypes() != null && p.getTypes().contains("null")) {
+            property.isNullable = true;
+        }
 
         if (p.getXml() != null) {
             if (p.getXml().getAttribute() != null) {
@@ -3699,8 +3703,10 @@ public class DefaultCodegen implements CodegenConfig {
         if (referencedSchema.getNullable() != null) {
             property.isNullable = referencedSchema.getNullable();
         }
-
-        property.dataType = getTypeDeclaration(p);
+        // OpenAPI 3.1: referenced schema type can be an array like ["array", "null"]
+        if (referencedSchema.getTypes() != null && referencedSchema.getTypes().contains("null")) {
+            property.isNullable = true;
+        }        property.dataType = getTypeDeclaration(p);
         property.dataFormat = p.getFormat();
         property.baseType = getSchemaType(p);
 
