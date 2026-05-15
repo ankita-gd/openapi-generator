@@ -3653,6 +3653,23 @@ public class DefaultCodegen implements CodegenConfig {
         if (p.getTypes() != null && p.getTypes().contains("null")) {
             property.isNullable = true;
         }
+        // OpenAPI 3.1: oneOf with null type (e.g., oneOf: [{$ref: ...}, {type: "null"}])
+        if (p.getOneOf() != null) {
+            for (Object oneOfSchema : p.getOneOf()) {
+                if (oneOfSchema instanceof Schema && ModelUtils.isNullType((Schema) oneOfSchema)) {
+                    property.isNullable = true;
+                    break;
+                }
+            }
+        }
+        if (p.getAnyOf() != null) {
+            for (Object anyOfSchema : p.getAnyOf()) {
+                if (anyOfSchema instanceof Schema && ModelUtils.isNullType((Schema) anyOfSchema)) {
+                    property.isNullable = true;
+                    break;
+                }
+            }
+        }
 
         if (p.getXml() != null) {
             if (p.getXml().getAttribute() != null) {
