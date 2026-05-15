@@ -154,6 +154,7 @@ public class PythonClientCodegen extends PythonLegacyClientCodegen {
                 .orElse(null);
         supportingFiles.remove(originalInitModel);
         supportingFiles.add(new SupportingFile("__init__model.mustache", packagePath() + File.separatorChar + "model", "__init__.py"));
+        supportingFiles.add(new SupportingFile("errorunknown.mustache", packagePath() + File.separatorChar + "model", "errorunknown.py"));
         supportingFiles.add(new SupportingFile("__init__apis.mustache", packagePath() + File.separatorChar + "apis", "__init__.py"));
         // Generate the 'signing.py' module, but only if the 'HTTP signature' security scheme is specified in the OAS.
         Map<String, SecurityScheme> securitySchemeMap = openAPI != null ?
