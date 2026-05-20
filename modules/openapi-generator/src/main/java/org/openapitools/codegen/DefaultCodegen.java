@@ -2845,6 +2845,31 @@ public class DefaultCodegen implements CodegenConfig {
             m.allowableValues = new HashMap<>();
             m.allowableValues.put("values", schema.getEnum());
         }
+        // OpenAPI 3.1 oneOf/const enum pattern at model level
+        if (!ModelUtils.isAnyType(schema) && !ModelUtils.isTypeObjectSchema(schema) && !ModelUtils.isArraySchema(schema)
+                && schema.get$ref() == null && (schema.getEnum() == null || schema.getEnum().isEmpty())
+                && schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
+            List<Schema> oneOfSchemas = schema.getOneOf();
+            boolean allConst = true;
+            List<Object> constValues = new ArrayList<>();
+            for (Schema oneOfSchema : oneOfSchemas) {
+                Object constValue = oneOfSchema.getConst();
+                if (constValue == null && oneOfSchema.getEnum() != null && oneOfSchema.getEnum().size() == 1) {
+                    constValue = oneOfSchema.getEnum().get(0);
+                }
+                if (constValue != null) {
+                    constValues.add(constValue);
+                } else {
+                    allConst = false;
+                    break;
+                }
+            }
+            if (allConst && !constValues.isEmpty()) {
+                m.isEnum = true;
+                m.allowableValues = new HashMap<>();
+                m.allowableValues.put("values", constValues);
+            }
+        }
         if (!ModelUtils.isArraySchema(schema)) {
             m.dataType = getSchemaType(schema);
         }
@@ -3700,6 +3725,38 @@ public class DefaultCodegen implements CodegenConfig {
             Map<String, Object> allowableValues = new HashMap<>();
             allowableValues.put("values", _enum);
             if (allowableValues.size() > 0) {
+                property.allowableValues = allowableValues;
+            }
+        }
+
+        // OpenAPI 3.1 oneOf/const enum pattern:
+        // When a property has type + oneOf where each oneOf item uses "const",
+        // treat it as an enum (e.g., PlatformType, TargetType with deprecated values).
+        if ((p.getEnum() == null || p.getEnum().isEmpty()) && p.getOneOf() != null && !p.getOneOf().isEmpty()) {
+            List<Schema> oneOfSchemas = p.getOneOf();
+            boolean allConst = true;
+            List<Object> constValues = new ArrayList<>();
+            for (Schema oneOfSchema : oneOfSchemas) {
+                Object constValue = oneOfSchema.getConst();
+                if (constValue == null && oneOfSchema.getEnum() != null && oneOfSchema.getEnum().size() == 1) {
+                    constValue = oneOfSchema.getEnum().get(0);
+                }
+                if (constValue != null) {
+                    constValues.add(constValue);
+                } else {
+                    allConst = false;
+                    break;
+                }
+            }
+            if (allConst && !constValues.isEmpty()) {
+                property._enum = new ArrayList<>();
+                for (Object val : constValues) {
+                    property._enum.add(String.valueOf(val));
+                }
+                property.isEnum = true;
+
+                Map<String, Object> allowableValues = new HashMap<>();
+                allowableValues.put("values", constValues);
                 property.allowableValues = allowableValues;
             }
         }
