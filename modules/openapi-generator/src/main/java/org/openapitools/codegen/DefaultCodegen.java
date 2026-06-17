@@ -3168,12 +3168,23 @@ public class DefaultCodegen implements CodegenConfig {
                 // All oneOf definitions must contain the discriminator
                 Integer hasDiscriminatorCnt = 0;
                 Integer hasNullTypeCnt = 0;
+                boolean hasMoRef = false;
                 Set<String> discriminatorsPropNames = new HashSet<>();
                 for (Schema oneOf : composedSchema.getOneOf()) {
                     if (ModelUtils.isNullType(oneOf)) {
                         // The null type does not have a discriminator. Skip.
                         hasNullTypeCnt++;
                         continue;
+                    }
+                    // Check if this oneOf member references mo.MoRef.
+                    // For Relationship schemas (oneOf: [null, mo.MoRef, ConcreteType]),
+                    // the ClassId discriminator should not be applied because MoRef objects
+                    // use ClassId="mo.MoRef" regardless of the ObjectType they reference.
+                    // Without this check, the SDK incorrectly resolves to the concrete type
+                    // based on ObjectType, leading to wrong ClassId in the serialized output.
+                    String oneOfRef = oneOf.get$ref();
+                    if (oneOfRef != null && oneOfRef.endsWith("/mo.MoRef")) {
+                        hasMoRef = true;
                     }
                     foundDisc = recursiveGetDiscriminator(oneOf, openAPI);
                     if (foundDisc != null) {
@@ -3185,7 +3196,7 @@ public class DefaultCodegen implements CodegenConfig {
                     LOGGER.warn("The oneOf schemas have conflicting discriminator property names. " +
                             "oneOf schemas must have the same property name, but found " + String.join(", ", discriminatorsPropNames));
                 }
-                if (foundDisc != null && (hasDiscriminatorCnt + hasNullTypeCnt) == composedSchema.getOneOf().size() && discriminatorsPropNames.size() == 1) {
+                if (!hasMoRef && foundDisc != null && (hasDiscriminatorCnt + hasNullTypeCnt) == composedSchema.getOneOf().size() && discriminatorsPropNames.size() == 1) {
                     disc.setPropertyName(foundDisc.getPropertyName());
                     disc.setMapping(foundDisc.getMapping());
                     return disc;
